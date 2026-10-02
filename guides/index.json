@@ -1,0 +1,11 @@
+{
+  "guides": [
+    {
+      "id": "codemidas",
+      "title": "CodeMidas: Scaling Agentic Coding RL Environments from Code Itself",
+      "field": "Machine learning · coding agents",
+      "minutes": 131,
+      "steps": 14
+    }
+  ]
+}

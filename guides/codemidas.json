@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "id": "codemidas",
+  "paper": {
+    "title": "CodeMidas: Scaling Agentic Coding RL Environments from Code Itself",
+    "authors": "Bowen Ye, Lei Li, Shicheng Li et al. (Xiaomi, Peking University, University of Hong Kong, Renmin University of China)",
+    "venue": "arXiv 2609.22068 · cs.AI",
+    "date": "2026-09-18",
+    "links": [
+      { "label": "Abstract", "url": "https://arxiv.org/abs/2609.22068" },
+      { "label": "PDF", "url": "https://arxiv.org/pdf/2609.22068" },
+      { "label": "HTML", "url": "https://arxiv.org/html/2609.22068" }
+    ]
+  },
+  "summary": "CodeMidas builds training tasks for coding agents from existing source code alone. It removes a feature, asks the agent to rebuild it, and tests it by running the original code. 5,545 tasks improve five coding benchmarks.",
+  "context": "Paper: \"CodeMidas: Scaling Agentic Coding RL Environments from Code Itself\" (arXiv 2609.22068, Sep 2026; Xiaomi LLM Core, Peking University, University of Hong Kong, Renmin University).\nProblem: RL for coding agents needs diverse tasks with reliable verifiers. Prior pipelines (SWE-bench, SWE-rebench V2, R2E-Gym, SWE-smith, SWE-Flow, R2E, MindForge, SWE-Hub, SWE-Universe, daVinci-Env) build tasks from issues, PRs, commits, existing tests or docs, which limits coverage.\nMethod: CodeMidas turns implemented functionality in existing codebases into RL environments using only source code. Each task = statement + containerized codebase + hidden verifier injected only at grading, binary reward.\n3.1 Task design: agent finds functionality with public entry points (CLI tools, pure library functions, stateful library APIs), removes core implementation, adapts remaining code into a coherent starting point, keeps original as reference solution. Statement fixes inputs, observable behavior, public interfaces; solvers choose internals.\n3.2 Tests: agent picks inputs and boundary cases, runs them on reference copy, records outcomes. Assertions check only what the statement specifies (e.g., exception type, not message). Review pass replaces unsupported restrictions with behavioral checks. Reject tasks where an assertion needs a private symbol with no behavioral substitute.\n3.3 Environment prep: uniform base image; cleanup removes compiled outputs, caches, agent leftovers, original tests. Execution consistency: 6 fresh containers, 2 with starting code (must fail), 4 with reference (must pass).\n3.4 Post-rollout filtering: leakage filtering via adversarial agent plus separate review; agreement check: coding agent makes 4 attempts, reviewer agent judges vs statement to flag verifier false positives/negatives; rollout outcome filtering: frontier model several attempts, keep only tasks with mixed pass/fail. Authors note all-pass/all-fail do not reveal cause and retention depends on screening model and budget.\n3.5 Dataset: 5,545 tasks, 3,185 codebases, 23 languages (Python 21.4%, TypeScript 18.3%, Go 16.2%, C++ 12.5%, JavaScript 11.3%; top 10 = 98.2%), 15 domains (systems software 17.4%, web 14.6%, dev tools 13.6%). Reference patch median 142 lines (IQR 66-305); 65.9% touch 2+ files.\n4 Experiments: MiMo-V2.5 trained with GRPO, batch 32, 32 rollouts/task, binary reward; Adam lr 5e-6, max response 516,096 tokens, max 500 turns, std normalization of advantage disabled. Benchmarks: SWE-bench Pro, DeepSWE v1.1, ProgramBench (Almost Solved = pass >=95% of tests), RepoZero C2Rust, Terminal-Bench v2.1, CodeMidas Val (200 held-out tasks, 3 attempts). Training set verified disjoint from eval sets. Results: DeepSWE 10.0->21.7, Terminal-Bench v2.1 63.7->72.2, ProgramBench 4.5->21.5, CodeMidas Val 35.0%->44.7%; SWE-bench Pro and RepoZero gains shown only in Figure 5. Trajectories get longer.\n5.1 Scale and quality: 1k/3k/5k clean pools vs ~8k vanilla (unfiltered). CodeMidas Val peaks 41.30/43.22/44.73. DeepSWE 17.57/19.05/21.70. 5k beats vanilla 8k by 0.59 (SWE-bench Pro), 4.59 (DeepSWE), 4.49 (CodeMidas Val); 3k also beats 8k on all three.\n5.2 Behavior (early->late): pre-edit read/search calls 27.2->40.1; drafting ratio 0.358->0.629; distinct post-edit verification commands 2.03->2.53. Self-verification rollouts pass +4.2 pts (95% CI 1.8-6.6). Exploration +0.7 (CI -1.9 to 3.7) and drafting +1.95 (CI -0.04 to 3.96) not significant. On held-out benchmarks the same habits increase (Table 3); ProgramBench turns 155.1->122.8.\nNo Limitations section in the paper.",
+  "glossary": {
+    "RL environment": "A task for training with reinforcement learning. It has three parts: a task statement, a codebase in a container, and a hidden verifier that gives a reward.",
+    "Verifier": "Hidden tests. The system adds them only at grading time. They return pass or fail.",
+    "Binary reward": "The reward is 1 if the verifier passes and 0 if it fails. There is no partial credit.",
+    "GRPO": "Group Relative Policy Optimization. An RL method. The model tries the same task many times (here 32). Each attempt is scored against the average of its group.",
+    "Rollout": "One full attempt by the agent at a task, with all its reasoning and tool calls. Also called a trajectory.",
+    "Development artifacts": "Issues, pull requests, commits, tests and docs. Older pipelines need these to build tasks. CodeMidas does not.",
+    "Codebase adaptation": "The agent removes the code for one feature. It fixes the rest so the project is still a clean starting point.",
+    "Reference solution": "The original code that the agent removed. The system keeps it to check the tests.",
+    "Behavioral specification": "The task statement. It says what inputs, outputs and public interfaces must exist. It does not say how to build them.",
+    "Execution-grounded tests": "Tests whose expected values come from running the original code, not from a human or a model guess.",
+    "Fail-to-pass": "Tests must fail on the starting code and pass on the reference solution. This proves the tests measure the missing feature.",
+    "Execution consistency": "The check with 6 fresh containers: 2 runs on the starting code (both must fail) and 4 runs on the reference solution (all must pass). It removes flaky tasks.",
+    "Leakage": "Leftover files (compiled output, caches, installed copies) that let an agent find the answer without doing the work.",
+    "Adversarial rollout": "An agent that tries on purpose to cheat, to find leakage.",
+    "False positive / negative": "False positive: a wrong solution passes the tests. False negative: a correct solution fails the tests.",
+    "Rollout outcome filtering": "A strong model tries each task several times. Only tasks with some passes and some fails stay. Tasks that are too easy or too hard are dropped.",
+    "Test oracle": "The thing that decides what the correct output is. The 'oracle problem' is that this is hard to build.",
+    "Almost Solved": "ProgramBench metric: the percent of tasks where the agent passes at least 95% of the tests.",
+    "CodeMidas Val": "200 held-out CodeMidas tasks, 3 attempts each. Used to track training.",
+    "Vanilla 8k": "About 8,000 tasks taken before any cleaning, checks or filtering. The baseline for the quality test.",
+    "Drafting ratio": "The share of written code pieces that already appeared in the agent's reasoning before it wrote them. High means the agent plans code in its head first.",
+    "Self-verification": "The number of different check commands the agent runs after its last edit.",
+    "MiMo-V2.5": "Xiaomi's base model. The starting policy for training.",
+    "Ablation": "An experiment that changes or removes one part to see how much that part matters."
+  },
+  "steps": [
+    {
+      "id": "goal", "pass": 0, "title": "Set your goal", "minutes": 3,
+      "read": "Nothing yet. Open the PDF in another tab and keep it ready.",
+      "goal": "Decide ==why== you read this paper. A reason keeps you on track.",
+      "focus": ["Pick one reading goal below.", "Write one question you hope the paper answers.", "Start the 25-minute timer when you begin Pass 1."],
+      "form": "purpose",
+      "tip": "**Rule for distractions:** when another thought comes, put it in the notebook as **Parking lot**. Then go back to the paper. You can read it later."
+    },
+    {
+      "id": "p1a", "pass": 1, "title": "Title and abstract", "minutes": 4,
+      "read": "**Read:** title and abstract only. Read slowly, one time.",
+      "goal": "Find three things: the ==problem==, the ==idea==, and the ==main result==.",
+      "focus": [
+        "Problem: RL for coding agents needs many tasks with reliable tests. Old methods build tasks from issues, pull requests and commits. This limits how many tasks exist.",
+        "Idea: build tasks from existing, working code. Remove a feature, ask the agent to rebuild it, and test it by running the original code.",
+        "Result: 5,545 tasks from 3,185 codebases, 23 languages, 15 domains. Training MiMo-V2.5 on them improves 5 benchmarks."
+      ],
+      "terms": ["RL environment", "Verifier", "GRPO"],
+      "checks": [
+        { "q": "What is the only task-specific input CodeMidas needs?", "a": "Source code. It does not need issues, pull requests, commits, existing tests or written docs." },
+        { "q": "How many training tasks, and from how many codebases?", "a": "5,545 tasks from 3,185 open-source codebases, in 23 languages and 15 technical domains." },
+        { "q": "Name two benchmarks that improved, with the gain.", "a": "DeepSWE +11.7 points, ProgramBench +17 (Almost Solved), Terminal-Bench v2.1 +8.5 points." }
+      ],
+      "tip": "**Do not** look up every word now. Tap the key terms below if you need them. Mark the rest as a Question."
+    },
+    {
+      "id": "p1b", "pass": 1, "title": "Introduction: first and last paragraphs", "minutes": 5,
+      "read": "**Read:** Section 1. Read the first paragraph and the last two paragraphs carefully. Only skim the middle.",
+      "goal": "Understand ==why the authors think old methods are not enough==.",
+      "focus": [
+        "The authors say old pipelines 'tie task creation to the coverage of recorded changes, tests, or documentation'.",
+        "Their claim: working code already gives you a task (its public interface) and a solution (the code itself).",
+        "Tests must reject wrong solutions but still accept other correct solutions.",
+        "Headline numbers: DeepSWE 10.0% to 21.7%, ProgramBench 4.5 to 21.5, Terminal-Bench v2.1 63.7% to 72.2%."
+      ],
+      "terms": ["Development artifacts", "Test oracle"],
+      "checks": [
+        { "q": "Why must tests accept 'alternative correct implementations'?", "a": "The agent may solve the task in a different way from the original code. If the tests check internal details, a correct but different solution would fail. That gives a wrong reward." },
+        { "q": "What surprising result about data size does the intro mention?", "a": "A filtered 3k subset beats an unfiltered 8k set. Quality matters more than raw size." }
+      ],
+      "tip": "**Trick:** in most papers, the last paragraph of the introduction lists the contributions. Read it twice."
+    },
+    {
+      "id": "p1c", "pass": 1, "title": "Headings and figures only", "minutes": 5,
+      "read": "**Look at:** all section headings, **Figure 1** (pipeline), **Figure 5** (results), **Table 1** (comparison). Read captions, not body text.",
+      "goal": "Build a ==map of the paper== in your head before you read it in detail.",
+      "focus": [
+        "Sections: 1 Intro, 2 Related Work, 3 Method (3.1 to 3.5), 4 Experiments, 5 Analysis, 6 Conclusion, Appendix A and B.",
+        "Figure 1 shows four modules and a pyramid of how many tasks survive each filter.",
+        "Table 1 compares 9 methods on which inputs they need.",
+        "Figure 5 shows start score and score after RL for each benchmark."
+      ],
+      "diagram": {
+        "boxes": [
+          { "title": "Task design", "sub": "find feature, remove it" },
+          { "title": "Test construction", "sub": "run original code" },
+          { "title": "Exec. consistency", "sub": "2 fail + 4 pass" },
+          { "title": "Post-rollout filter", "sub": "leakage, review, mixed" }
+        ],
+        "caption": "Input: source code only. Output: 5,545 tasks (statement + container + hidden verifier)."
+      },
+      "terms": ["Rollout"],
+      "checks": [
+        { "q": "What are the four modules in Figure 1?", "a": "Task design, test construction, execution consistency, and post-rollout filtering." },
+        { "q": "In Table 1, which other methods cover more than 1 language?", "a": "SWE-rebench V2 (20), SWE-Hub (11), MindForge (15). CodeMidas has 23. All others have 1." }
+      ],
+      "tip": "**Why figures first:** authors put their main message in figures. A good figure saves you 10 minutes of text."
+    },
+    {
+      "id": "p1d", "pass": 1, "title": "Conclusion and first judgment", "minutes": 5,
+      "read": "**Read:** Section 6, Conclusion (short, about 110 words).",
+      "goal": "Answer the ==Five Cs==. Then decide: read deeper, or stop here?",
+      "focus": [
+        "The conclusion repeats the gains on five benchmarks.",
+        "It says a smaller filtered set beats a larger unfiltered set.",
+        "It says the behavior changes also show up on outside tasks."
+      ],
+      "form": "fiveCs",
+      "tip": "**Stopping is fine.** If the paper is not useful for your goal, stop after Pass 1. You already know the main idea."
+    },
+    {
+      "id": "p2a", "pass": 2, "title": "Related work (Section 2)", "minutes": 8,
+      "read": "**Read:** Section 2.1 and 2.2. Study **Table 1**. Skim the list of other systems.",
+      "goal": "Find ==what is new==. Which old problem does CodeMidas remove?",
+      "focus": [
+        "2.1: other pipelines build tasks from commits (R2E-Gym), break existing tests (SWE-smith), use unit tests (SWE-Flow), docstrings (R2E) or docs (MindForge).",
+        "The claim: CodeMidas alone needs none of issue, PR, commit, existing tests or written description.",
+        "2.2: rewards. CodeMidas uses GRPO with rewards from execution only. There is no reward model and no learned verifier."
+      ],
+      "terms": ["Development artifacts", "Binary reward", "Test oracle"],
+      "checks": [
+        { "q": "What kind of reward does CodeMidas use, and what does it NOT use?", "a": "A binary reward from running synthesized tests. It does not use a reward model or a learned verifier." },
+        { "q": "Is Section 2 fair? What would you check?", "a": "Open question. Check if Table 1 compares only on input needs, and not on task quality or difficulty. Put your view in the notebook as a Doubt." }
+      ],
+      "tip": "**Do not read every citation.** Only note the 1 or 2 systems closest to your own work. Add them as an Idea."
+    },
+    {
+      "id": "p2b", "pass": 2, "title": "Method part 1: task and tests (3.1, 3.2)", "minutes": 15,
+      "read": "**Read:** Section 3 intro, 3.1 Task Design and Codebase Adaptation, 3.2 Execution-grounded Test Construction. Keep Figure 1 open.",
+      "goal": "Understand ==how one task is made==, step by step.",
+      "focus": [
+        "A task = statement + container with code + hidden verifier. The verifier is added only at grading.",
+        "3.1: an agent finds a feature with a public entry point and visible output. Types: CLI tools, pure library functions, stateful library APIs.",
+        "3.1: it removes the core code, fixes the rest, and keeps the original as the reference solution.",
+        "3.2: an agent picks inputs and edge cases, runs them on the original code, and records the outputs.",
+        "3.2: tests check only what the statement says. Example: check the exception type, not the message text.",
+        "3.2: a task is rejected if a test needs a private symbol and has no behavioral replacement."
+      ],
+      "terms": ["Codebase adaptation", "Reference solution", "Behavioral specification", "Execution-grounded tests"],
+      "checks": [
+        { "q": "Where do the expected values in the tests come from?", "a": "From running the original (reference) code on the chosen inputs." },
+        { "q": "Why check the exception type and not the error message?", "a": "The statement does not fix the message wording. A correct solution with a different message must still pass." },
+        { "q": "What three interface types are supported?", "a": "CLI tools, pure library functions, and stateful library APIs." }
+      ],
+      "tip": "**Stop and draw.** After 3.2, close the paper. Draw the steps on paper from memory. Then compare with Figure 1."
+    },
+    {
+      "id": "p2c", "pass": 2, "title": "Method part 2: checks and filters (3.3, 3.4)", "minutes": 15,
+      "read": "**Read:** 3.3 Environment Preparation and 3.4 Post-rollout Environment Filtering.",
+      "goal": "Understand ==how bad tasks are removed==. This is where task quality comes from.",
+      "focus": [
+        "3.3: cleanup removes compiled files, caches, agent leftovers and the original tests for the feature.",
+        "3.3: execution consistency uses 6 fresh containers. 2 on starting code must fail. 4 on the reference solution must pass.",
+        "3.4 Leakage filtering: an adversarial agent looks for ways to cheat. A second review confirms before rejecting.",
+        "3.4 Agreement: a coding agent makes 4 attempts. A reviewer agent judges each one against the statement to find false positives and false negatives.",
+        "3.4 Outcome filtering: a frontier model tries several times. Keep only tasks with both passes and fails."
+      ],
+      "terms": ["Execution consistency", "Fail-to-pass", "Leakage", "Adversarial rollout", "False positive / negative", "Rollout outcome filtering"],
+      "checks": [
+        { "q": "Why run the starting code twice and the reference four times?", "a": "To prove the fail-to-pass change and to catch flaky tests. A task passes only if both starting runs fail and all four reference runs pass." },
+        { "q": "Why drop tasks that a frontier model always solves or never solves?", "a": "With GRPO, if all 32 attempts get the same reward, there is no signal to learn from. Mixed results give a useful learning signal." },
+        { "q": "What is one weakness the authors admit about outcome filtering?", "a": "All-pass and all-fail results 'do not reveal the cause'. And what stays depends on which screening model and budget they used." }
+      ],
+      "tip": "**Ask yourself:** which filter costs the most compute? Which one would you remove first? Write it as a Doubt or Idea."
+    },
+    {
+      "id": "p2d", "pass": 2, "title": "Dataset (3.5, Figures 2 to 4)", "minutes": 6,
+      "read": "**Read:** 3.5 Dataset Overview. Look at **Figures 2, 3, 4**.",
+      "goal": "Know ==what the data looks like==: languages, domains, size of solutions.",
+      "focus": [
+        "Languages: Python 21.4%, TypeScript 18.3%, Go 16.2%, C++ 12.5%, JavaScript 11.3%. Top 10 languages cover 98.2% of tasks.",
+        "Domains: systems software 17.4%, web 14.6%, developer tools 13.6%.",
+        "Reference patch size: median 142 lines (IQR 66 to 305). 65.9% of tasks touch 2 or more files."
+      ],
+      "checks": [
+        { "q": "What is the median size of a reference solution?", "a": "142 lines. The middle half of tasks is between 66 and 305 lines." },
+        { "q": "Is the language mix balanced?", "a": "No. The top 5 languages hold about 80% of tasks. Top 10 hold 98.2%. The other 13 languages share about 100 tasks." }
+      ],
+      "tip": "**Numbers tip:** copy only numbers you may use later. Put them in a Note with the figure number."
+    },
+    {
+      "id": "p2e", "pass": 2, "title": "Experiments (Section 4)", "minutes": 10,
+      "read": "**Read:** 4.1 Experimental Setup and 4.2 Results. Study **Figure 5** and **Figure 6**. Glance at Appendix A for settings.",
+      "goal": "Check ==what was measured and how==. Is the test fair?",
+      "focus": [
+        "Model: MiMo-V2.5, trained with GRPO. Batch 32, 32 rollouts per task, binary reward.",
+        "Benchmarks: SWE-bench Pro, DeepSWE v1.1, ProgramBench, RepoZero C2Rust, Terminal-Bench v2.1, plus CodeMidas Val.",
+        "The authors say training data is disjoint from all test sets.",
+        "Results: DeepSWE 10.0 to 21.7, Terminal-Bench 63.7 to 72.2, ProgramBench 4.5 to 21.5. CodeMidas Val 35.0% to 44.7%.",
+        "SWE-bench Pro and RepoZero numbers are only in Figure 5. Read them from the figure."
+      ],
+      "terms": ["Almost Solved", "CodeMidas Val", "MiMo-V2.5"],
+      "checks": [
+        { "q": "What does ProgramBench 'Almost Solved' mean?", "a": "The percent of tasks where the agent passes at least 95% of the tests." },
+        { "q": "How many base models were trained?", "a": "One: MiMo-V2.5. Ask yourself if the result would hold for other models." },
+        { "q": "What happens to trajectory length during training?", "a": "It grows. The agent writes longer attempts (Figure 6)." }
+      ],
+      "tip": "**Critical eye:** for each number, ask 'compared to what?'. Here the comparison is the same model before RL training."
+    },
+    {
+      "id": "p2f", "pass": 2, "title": "Analysis (Section 5)", "minutes": 15,
+      "read": "**Read:** 5.1 Task Scale and Quality (Figures 7, 8) and 5.2 Behavioral Changes (Figure 9, Tables 2, 3). Appendix B defines the metrics.",
+      "goal": "Understand ==two findings==: quality beats size, and the agent learns new habits.",
+      "focus": [
+        "5.1: pools of 1k, 3k and 5k clean tasks vs. 8k unfiltered ('vanilla') tasks.",
+        "DeepSWE: 17.57 (1k), 19.05 (3k), 21.70 (5k). The 3k clean pool beats the 8k vanilla pool on all three evaluations.",
+        "5.2 Table 2: read and search calls before first edit 27.2 to 40.1. Drafting ratio 0.358 to 0.629. Distinct checks after edit 2.03 to 2.53.",
+        "Rollouts where the agent ran its own checks pass 4.2 points more often (95% CI 1.8 to 6.6).",
+        "Exploration (+0.7) and drafting (+1.95) links to success are not significant: their intervals include 0.",
+        "Table 3: the same habits grow on outside benchmarks."
+      ],
+      "terms": ["Vanilla 8k", "Ablation", "Drafting ratio", "Self-verification"],
+      "checks": [
+        { "q": "Which habit had a statistically clear link to success?", "a": "Self-verification: +4.2 points, 95% CI 1.8 to 6.6. Exploration and drafting were not significant." },
+        { "q": "Does 'more exploration' cause better results?", "a": "The paper does not show this. The link is not significant, and these are correlations, not causes." },
+        { "q": "On ProgramBench, did the number of turns go up or down?", "a": "Down, from 155.1 to 122.8. On SWE-bench Pro and Terminal-Bench it went up." }
+      ],
+      "tip": "**Watch the words:** 'associated with' is not 'causes'. Mark any sentence where you feel the claim is bigger than the data."
+    },
+    {
+      "id": "p3a", "pass": 3, "title": "Rebuild it without the paper", "minutes": 15,
+      "read": "**Close the paper.** Use only your memory and your notes.",
+      "goal": "Explain CodeMidas ==as if you were teaching it==. Gaps in your explanation show what to re-read.",
+      "focus": [
+        "Write the pipeline in 5 steps, in your own words.",
+        "Say why each filter exists: what bad task does it remove?",
+        "Then open the paper and check. Mark what you got wrong as a Question."
+      ],
+      "form": "rebuild",
+      "tip": "**This step is the most useful one.** Reading feels like learning. Only recall shows what you really learned."
+    },
+    {
+      "id": "p3b", "pass": 3, "title": "Doubt it", "minutes": 15,
+      "read": "**Re-read** only the parts that make the biggest claims: 3.4, 4.2, 5.1, 5.2.",
+      "goal": "Find ==weak points==. Every paper has them. The authors do not list limitations here, so you must.",
+      "focus": [
+        "There is no Limitations section in this paper.",
+        "Only one base model (MiMo-V2.5) is trained. Does it work for other models?",
+        "Filters use a frontier model and reviewer agents. How much does that cost? Which model was it?",
+        "Tests come from the original code. If the original code has a bug, the test copies the bug.",
+        "Some results (SWE-bench Pro, RepoZero C2Rust) are only in a figure.",
+        "Behavior links for exploration and drafting are not significant."
+      ],
+      "terms": ["Test oracle", "False positive / negative"],
+      "checks": [
+        { "q": "If the original code has a bug, what happens to the task?", "a": "The tests record the buggy output as 'correct'. A solution that fixes the bug would fail. This is the test oracle problem." },
+        { "q": "What would you need to trust the 'disjoint from test sets' claim?", "a": "A description of how they checked overlap: by repository, by file, or by code similarity. Check Section 4.1 for the method." }
+      ],
+      "tip": "**Write each doubt as a Doubt entry.** Later you can ask a chatbot about it, or look for the answer in the paper."
+    },
+    {
+      "id": "p3c", "pass": 3, "title": "Connect it to your work", "minutes": 10,
+      "read": "No new reading. Look at your notebook.",
+      "goal": "Decide ==what you will do== with this paper.",
+      "focus": [
+        "Which idea can you use? (Example: tests from running original code, the 2+4 container check, the 'mixed results only' filter.)",
+        "Which question is still open? Mark answered questions as Resolved.",
+        "Write the final summary below."
+      ],
+      "form": "summary",
+      "tip": "**Finish:** press **Copy all as Markdown** in the notebook. Paste it into your own notes app."
+    }
+  ],
+  "generatedBy": "Claude (claude-opus-5-5), from the arXiv HTML version, 2026-09-27"
+}

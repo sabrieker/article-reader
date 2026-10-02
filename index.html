@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Article Reader</title>
+<meta name="description" content="Read research articles in three guided passes, with check questions, a focus timer and a notebook.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="./" aria-label="Article Reader home">Article Reader</a>
+    <div class="paper" id="paperHead"></div>
+    <div class="tools" id="readerTools" hidden>
+      <div class="timer" id="timer" title="Focus timer: 25 minutes reading, 5 minutes break">
+        <span class="mode" id="timerMode">FOCUS</span>
+        <span class="clock" id="timerClock">25:00</span>
+        <button class="btn small ghost" id="timerGo">Start</button>
+        <button class="btn small ghost" id="timerReset">Reset</button>
+      </div>
+      <button class="btn" id="focusBtn" aria-pressed="false">Focus mode</button>
+      <button class="btn book-toggle" id="bookBtn">Notebook <span class="mono" id="bookCount">0</span></button>
+    </div>
+  </div>
+  <div class="progress" aria-hidden="true"><i id="progBar"></i></div>
+</header>
+
+<div id="view"></div>
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast" hidden></div>
+<noscript><p style="padding:16px">Article Reader needs JavaScript.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
